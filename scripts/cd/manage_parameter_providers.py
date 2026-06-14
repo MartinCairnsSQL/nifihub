@@ -203,7 +203,9 @@ def delete_parameter_providers(pp_specs, runtime_url, nifi_pat, nifi_auth=None):
             for ctx_ref in (all_contexts.parameter_contexts or []):
                 ctx = pc_api.get_parameter_context(id=ctx_ref.id)
                 cfg = ctx.component.parameter_provider_configuration
-                if cfg and cfg.parameter_provider_id == pp.id:
+                # cfg is a ParameterProviderConfigurationEntity; the provider
+                # id is at cfg.id (the entity id), not cfg.parameter_provider_id
+                if cfg and cfg.id == pp.id:
                     try:
                         pc_api.delete_parameter_context(
                             id=ctx.id,
