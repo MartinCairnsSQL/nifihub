@@ -181,29 +181,43 @@ def delete_flow(pg_entity):
     name = pg_entity.component.name
     print(f"[flow] Deleting process group '{name}' ({pg_id})...")
 
-    nipyapi.canvas.schedule_process_group(pg_id, False)
-    time.sleep(2)
-
+    # Step 1: Stop all processors in the process group (recursively)
     try:
-        cs_api = nipyapi.nifi.FlowApi()
-        cs_result = cs_api.get_controller_services_from_group(pg_id)
-        for cs in (cs_result.controller_services or []):
-            if cs.component.state == "ENABLED":
-                nipyapi.canvas.schedule_controller(cs, False)
-    except Exception:
-        pass
+        nipyapi.nifi.FlowApi().schedule_components(
+            body=nipyapi.nifi.ScheduleComponentsEntity(id=pg_id, state="STOPPED"),
+            id=pg_id,
+        )
+        time.sleep(2)
+    except Exception as e:
+        print(f"[flow] Warning: could not stop processors in '{name}': {e}")
 
+    # Step 2: Disable all controller services in the process group (recursively)
     try:
-        connections = nipyapi.nifi.ProcessGroupsApi().get_connections(pg_id)
-        for conn in (connections.connections or []):
-            drop_body = nipyapi.nifi.DropRequestEntity()
-            nipyapi.nifi.FlowfileQueuesApi().create_drop_request(conn.id, body=drop_body)
-    except Exception:
-        pass
+        nipyapi.nifi.FlowApi().activate_controller_services(
+            body=nipyapi.nifi.ActivateControllerServicesEntity(id=pg_id, state="DISABLED"),
+            id=pg_id,
+        )
+        time.sleep(2)
+    except Exception as e:
+        print(f"[flow] Warning: could not disable controller services in '{name}': {e}")
 
-    time.sleep(2)
-    api = nipyapi.nifi.ProcessGroupsApi()
-    api.remove_process_group(pg_id, version=str(pg_entity.revision.version))
+    # Step 3: Drop all queued flowfiles in the process group
+    try:
+        pg_api = nipyapi.nifi.ProcessGroupsApi()
+        drop_req = pg_api.create_empty_all_connections_request(pg_id)
+        drop_id = drop_req.drop_request.id
+        for _ in range(20):
+            status = pg_api.get_drop_all_flowfiles_request(pg_id, drop_id)
+            if status.drop_request.finished:
+                break
+            time.sleep(1)
+        pg_api.remove_drop_request1(pg_id, drop_id)
+    except Exception as e:
+        print(f"[flow] Warning: could not empty queues in '{name}': {e}")
+
+    # Step 4: Delete the process group (re-fetch for latest revision)
+    pg_entity = nipyapi.nifi.ProcessGroupsApi().get_process_group(id=pg_id)
+    nipyapi.nifi.ProcessGroupsApi().remove_process_group(pg_id, version=str(pg_entity.revision.version))
     print(f"[flow] Deleted process group '{name}'")
 
 
