@@ -31,7 +31,7 @@ from manage_runtime import (
     suspend_runtime, resume_runtime
 )
 from manage_parameters import resolve_value
-from setup_registry_client import setup as setup_registry
+from setup_registry_client import setup as setup_registry, find_registry_client, delete_registry_client
 from manage_flows import reconcile_flows, delete_flows, find_flow_pg_by_name, configure_nifi, start_flow, stop_flow
 from manage_parameters import reconcile_flow_parameters, add_inherited_parameter_contexts, apply_parameter_overrides
 from manage_assets import reconcile_flow_assets
@@ -200,6 +200,21 @@ def _setup_flow_registries(rt, runtime_url):
             type_override=rc.get("type"),
             nifi_auth=nifi_auth,
         )
+
+
+def _delete_flow_registries(to_delete, runtime_url, rt):
+    """Delete Flow Registry Clients that were removed from config."""
+    if not to_delete:
+        return
+    nifi_pat = _get_nifi_pat()
+    nifi_auth = _get_nifi_auth(rt)
+    configure_nifi(runtime_url, pat=nifi_pat, nifi_auth=nifi_auth)
+    for rc in to_delete:
+        existing = find_registry_client(rc["name"])
+        if existing:
+            delete_registry_client(existing)
+        else:
+            print(f"[registry] '{rc['name']}' not found, skipping delete")
 
 
 def _default_registry(rt):
@@ -588,6 +603,10 @@ def apply_runtime_modification(mod, conn):
     cs_changes = mod.get("controller_service_changes", {})
     if cs_changes.get("deleted"):
         _delete_controller_services(cs_changes["deleted"], runtime_url)
+
+    reg_changes = mod.get("flow_registry_changes", {})
+    if reg_changes.get("deleted"):
+        _delete_flow_registries(reg_changes["deleted"], runtime_url, rt)
 
     connector_changes = mod.get("connector_changes", {})
     if connector_changes.get("deleted"):

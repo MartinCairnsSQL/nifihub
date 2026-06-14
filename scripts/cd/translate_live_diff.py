@@ -83,6 +83,10 @@ def _translate_nifi_changes(nifi_diff):
         "controller_service_changes": cs_changes,
         "parameter_provider_changes": pp_changes,
         "flow_registries_changed": flow_registries_changed,
+        "flow_registry_changes": {
+            "created": reg_diff.get("created", []),
+            "deleted": reg_diff.get("deleted", []),
+        },
     }
 
 
