@@ -164,7 +164,18 @@ def deploy(flow_path, config_path, runtime_url, pat):
     base = re.sub(r"/nifi-api/?$", "", re.sub(r"/nifi/?$", "", runtime_url.rstrip("/")))
     api_base = base + "/nifi-api"
 
-    configure_nifi(api_base, pat)
+    nifi_auth_cfg = config.get("nifi_auth")
+    nifi_auth = None
+    if nifi_auth_cfg and nifi_auth_cfg.get("type") == "username_password":
+        from manage_parameters import resolve_value
+        nifi_auth = {
+            "type": "username_password",
+            "username": resolve_value(nifi_auth_cfg["username"]),
+            "password": resolve_value(nifi_auth_cfg["password"]),
+            "verify_ssl": nifi_auth_cfg.get("verify_ssl", True),
+        }
+
+    configure_nifi(api_base, pat=pat, nifi_auth=nifi_auth)
 
     nar_urls = config.get("nars", [])
     upload_nars(nar_urls)

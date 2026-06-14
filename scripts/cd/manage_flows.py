@@ -22,15 +22,36 @@ import time
 import nipyapi
 
 
-def configure_nifi(runtime_url, pat):
+def configure_nifi(runtime_url, pat=None, nifi_auth=None):
+    """Configure nipyapi to connect to a NiFi instance.
+
+    Args:
+        runtime_url: NiFi base URL (with or without /nifi-api suffix).
+        pat: Bearer token (Snowflake PAT). Used when nifi_auth is not provided.
+        nifi_auth: Dict with auth config. Supported types:
+            {"type": "username_password", "username": "...", "password": "...",
+             "verify_ssl": True}
+            When provided, uses nipyapi.security.service_login() to obtain a JWT
+            via POST /nifi-api/access/token (standard OSS NiFi auth flow).
+    """
     api_url = runtime_url.rstrip("/")
     if api_url.endswith("/nifi"):
         api_url = api_url[:-5]
     if not api_url.endswith("/nifi-api"):
         api_url += "/nifi-api"
     nipyapi.config.nifi_config.host = api_url
-    nipyapi.config.nifi_config.api_key["bearerAuth"] = f"Bearer {pat}"
     nipyapi.config.nifi_config.api_client = None
+
+    if nifi_auth and nifi_auth.get("type") == "username_password":
+        verify_ssl = nifi_auth.get("verify_ssl", True)
+        nipyapi.config.nifi_config.verify_ssl = verify_ssl
+        nipyapi.security.service_login(
+            service="nifi",
+            username=nifi_auth["username"],
+            password=nifi_auth["password"],
+        )
+    elif pat:
+        nipyapi.config.nifi_config.api_key["bearerAuth"] = f"Bearer {pat}"
 
 
 def find_registry_client(name):
