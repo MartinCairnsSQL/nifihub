@@ -150,8 +150,8 @@ def reconcile_parameter_provider(pp_spec):
     return _apply(pp.id, sensitive_pattern)
 
 
-def reconcile_parameter_providers(pp_specs, runtime_url, nifi_pat):
-    configure_nifi(runtime_url, nifi_pat)
+def reconcile_parameter_providers(pp_specs, runtime_url, nifi_pat, nifi_auth=None):
+    configure_nifi(runtime_url, pat=nifi_pat, nifi_auth=nifi_auth)
     all_context_names = []
     for pp_spec in pp_specs:
         names = reconcile_parameter_provider(pp_spec)
@@ -181,8 +181,8 @@ def fetch_auto_provisioned_provider(sensitive_pattern=".*"):
     return _apply(pp.id, sensitive_pattern) or []
 
 
-def delete_parameter_providers(pp_specs, runtime_url, nifi_pat):
-    configure_nifi(runtime_url, nifi_pat)
+def delete_parameter_providers(pp_specs, runtime_url, nifi_pat, nifi_auth=None):
+    configure_nifi(runtime_url, pat=nifi_pat, nifi_auth=nifi_auth)
     api = nipyapi.nifi.ParameterProvidersApi()
     for pp_spec in pp_specs:
         name = pp_spec["name"]

@@ -207,9 +207,9 @@ def delete_flow(pg_entity):
     print(f"[flow] Deleted process group '{name}'")
 
 
-def reconcile_flows(flows, registry_client_name, runtime_url, nifi_pat):
+def reconcile_flows(flows, registry_client_name, runtime_url, nifi_pat, nifi_auth=None):
     """Idempotent reconcile: create missing PGs, update version-mismatched PGs, skip up-to-date ones."""
-    configure_nifi(runtime_url, nifi_pat)
+    configure_nifi(runtime_url, pat=nifi_pat, nifi_auth=nifi_auth)
 
     rc = find_registry_client(registry_client_name)
     if not rc:
@@ -267,9 +267,9 @@ def stop_flow(pg_id, pg_name=""):
     print(f"[flow] '{label}' stopped")
 
 
-def delete_flows(flows, registry_client_name, runtime_url, nifi_pat):
+def delete_flows(flows, registry_client_name, runtime_url, nifi_pat, nifi_auth=None):
     """Delete process groups for flows that were removed from config."""
-    configure_nifi(runtime_url, nifi_pat)
+    configure_nifi(runtime_url, pat=nifi_pat, nifi_auth=nifi_auth)
 
     for flow_spec in flows:
         pg_name = flow_spec["name"]

@@ -149,7 +149,7 @@ def _reconcile_controller_services(rt, runtime_url):
     if not services:
         return
     nifi_pat = _get_nifi_pat()
-    reconcile_controller_services(services, runtime_url, nifi_pat)
+    reconcile_controller_services(services, runtime_url, nifi_pat, nifi_auth=_get_nifi_auth(rt))
 
 
 def _delete_controller_services(services, runtime_url):
@@ -169,7 +169,7 @@ def _reconcile_parameter_providers(rt, runtime_url):
     configure_nifi(runtime_url, pat=nifi_pat, nifi_auth=nifi_auth)
     all_context_names = []
     if providers:
-        names = reconcile_parameter_providers(providers, runtime_url, nifi_pat)
+        names = reconcile_parameter_providers(providers, runtime_url, nifi_pat, nifi_auth=nifi_auth)
         if names:
             all_context_names.extend(names)
     sensitive_pattern = rt.get("sensitive_param_pattern", ".*")
@@ -189,12 +189,16 @@ def _delete_parameter_providers(providers, runtime_url):
 
 def _setup_flow_registries(rt, runtime_url):
     """Provision all Flow Registry Clients declared on a runtime."""
+def _setup_flow_registries(rt, runtime_url):
+    """Provision all Flow Registry Clients declared on a runtime."""
     nifi_pat = _get_nifi_pat()
+    nifi_auth = _get_nifi_auth(rt)
     for rc in rt.get("flow_registries", []):
         properties = {k: resolve_value(v) for k, v in rc.get("properties", {}).items()}
         setup_registry(
             rc["name"], properties, runtime_url, nifi_pat,
             type_override=rc.get("type"),
+            nifi_auth=nifi_auth,
         )
 
 
@@ -216,7 +220,7 @@ def _reconcile_flows(rt, runtime_url, provider_context_names=None):
     for f in flows:
         groups[f.get("registry", default_reg)].append(f)
     for registry_name, group in groups.items():
-        reconcile_flows(group, registry_name, runtime_url, nifi_pat)
+        reconcile_flows(group, registry_name, runtime_url, nifi_pat, nifi_auth=nifi_auth)
 
     if provider_context_names:
         import re
@@ -294,7 +298,7 @@ def _delete_flows(flows, rt, runtime_url):
     for f in flows:
         groups[f.get("registry", default_reg)].append(f)
     for registry_name, group in groups.items():
-        delete_flows(group, registry_name, runtime_url, nifi_pat)
+        delete_flows(group, registry_name, runtime_url, nifi_pat, nifi_auth=_get_nifi_auth(rt))
 
 
 def _reconcile_connectors(rt, conn):
