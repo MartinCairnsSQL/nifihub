@@ -56,7 +56,7 @@
         "type": { "type": "string", "enum": ["username_password"] },
         "username": { "type": "string" },
         "password": { "type": "string" },
-        "verify_ssl": { "type": "boolean", "default": true }
+        "verify_ssl": { "type": "boolean", "default": true, "description": "Boolean only (CI runtimes are always SPCS — CA bundle path not applicable here; use environments/schema.json for local/BYOC configs that need a custom CA path)." }
       }
     },
     "provided_parameter_contexts": {

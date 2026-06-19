@@ -185,7 +185,7 @@ def deploy(flow_path, config_path, runtime_url, pat):
     providers = config.get("parameter_providers", [])
     provider_context_names = []
     if providers:
-        provider_context_names = reconcile_parameter_providers(providers, api_base, pat)
+        provider_context_names = reconcile_parameter_providers(providers, api_base, pat, nifi_auth=nifi_auth)
 
     sensitive_pattern = config.get("sensitive_param_pattern", ".*")
     auto_names = fetch_auto_provisioned_provider(sensitive_pattern=sensitive_pattern)
