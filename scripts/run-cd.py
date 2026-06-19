@@ -91,9 +91,8 @@ def main():
     cd_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "cd"))
 
     # Provide defaults for optional env vars so scripts don't crash on KeyError
-    env = os.environ.copy()
-    env.setdefault("GH_SECRETS_JSON", "{}")
-    env.setdefault("GH_VARS_JSON", "{}")
+    os.environ.setdefault("GH_SECRETS_JSON", "{}")
+    os.environ.setdefault("GH_VARS_JSON", "{}")
 
     with tempfile.TemporaryDirectory() as tmp:
         live_state = os.path.join(tmp, "live-state.json")

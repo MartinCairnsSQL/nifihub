@@ -152,12 +152,12 @@ def _reconcile_controller_services(rt, runtime_url):
     reconcile_controller_services(services, runtime_url, nifi_pat, nifi_auth=_get_nifi_auth(rt))
 
 
-def _delete_controller_services(services, runtime_url):
+def _delete_controller_services(services, runtime_url, nifi_auth=None):
     """Delete controller services explicitly removed from config."""
     if not services:
         return
     nifi_pat = _get_nifi_pat()
-    delete_controller_services(services, runtime_url, nifi_pat)
+    delete_controller_services(services, runtime_url, nifi_pat, nifi_auth=nifi_auth)
 
 
 def _reconcile_parameter_providers(rt, runtime_url):
@@ -179,16 +179,14 @@ def _reconcile_parameter_providers(rt, runtime_url):
     return all_context_names
 
 
-def _delete_parameter_providers(providers, runtime_url):
+def _delete_parameter_providers(providers, runtime_url, nifi_auth=None):
     """Delete parameter providers explicitly removed from config."""
     if not providers:
         return
     nifi_pat = _get_nifi_pat()
-    delete_parameter_providers(providers, runtime_url, nifi_pat)
+    delete_parameter_providers(providers, runtime_url, nifi_pat, nifi_auth=nifi_auth)
 
 
-def _setup_flow_registries(rt, runtime_url):
-    """Provision all Flow Registry Clients declared on a runtime."""
 def _setup_flow_registries(rt, runtime_url):
     """Provision all Flow Registry Clients declared on a runtime."""
     nifi_pat = _get_nifi_pat()
@@ -518,8 +516,8 @@ def apply_deployment_modifications(modified_deps, conn, errors):
                 runtime_url = _runtime_url(rt, conn)
                 if runtime_url:
                     _delete_flows(rt.get("flows", []), rt, runtime_url)
-                    _delete_parameter_providers(rt.get("parameter_providers", []), runtime_url)
-                    _delete_controller_services(rt.get("controller_services", []), runtime_url)
+                    _delete_parameter_providers(rt.get("parameter_providers", []), runtime_url, nifi_auth=_get_nifi_auth(rt))
+                    _delete_controller_services(rt.get("controller_services", []), runtime_url, nifi_auth=_get_nifi_auth(rt))
                 if _has_som_api(rt):
                     delete_runtime(rt["name"], rt["database"], rt["schema"], **conn)
                     delete_runtime_eai(
@@ -598,11 +596,11 @@ def apply_runtime_modification(mod, conn):
 
     pp_changes = mod.get("parameter_provider_changes", {})
     if pp_changes.get("deleted"):
-        _delete_parameter_providers(pp_changes["deleted"], runtime_url)
+        _delete_parameter_providers(pp_changes["deleted"], runtime_url, nifi_auth=_get_nifi_auth(rt))
 
     cs_changes = mod.get("controller_service_changes", {})
     if cs_changes.get("deleted"):
-        _delete_controller_services(cs_changes["deleted"], runtime_url)
+        _delete_controller_services(cs_changes["deleted"], runtime_url, nifi_auth=_get_nifi_auth(rt))
 
     reg_changes = mod.get("flow_registry_changes", {})
     if reg_changes.get("deleted"):
@@ -622,9 +620,9 @@ def apply_deployment_deletes(deleted_deps, conn, errors):
             try:
                 runtime_url = _runtime_url(rt, conn)
                 if runtime_url:
-                    _delete_parameter_providers(rt.get("parameter_providers", []), runtime_url)
-                    _delete_controller_services(rt.get("controller_services", []), runtime_url)
                     _delete_flows(rt.get("flows", []), rt, runtime_url)
+                    _delete_parameter_providers(rt.get("parameter_providers", []), runtime_url, nifi_auth=_get_nifi_auth(rt))
+                    _delete_controller_services(rt.get("controller_services", []), runtime_url, nifi_auth=_get_nifi_auth(rt))
                 _delete_connectors(rt.get("connectors", []), rt["database"], rt["schema"], conn)
 
                 if _has_som_api(rt):
